@@ -1,3 +1,6 @@
+import re
+
+
 class PromptInjectionFilter:
     suspicious = [
         "ignore previous instructions",
@@ -14,6 +17,5 @@ class PromptInjectionFilter:
     def sanitize(self, text: str) -> str:
         cleaned = text
         for pattern in self.suspicious:
-            cleaned = cleaned.replace(pattern, "[filtered]")
-            cleaned = cleaned.replace(pattern.title(), "[filtered]")
+            cleaned = re.sub(re.escape(pattern), "[filtered]", cleaned, flags=re.IGNORECASE)
         return cleaned.strip()

@@ -24,7 +24,8 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const isCredentialRequest = /\/auth\/(login|register)$/.test(error?.config?.url || "");
+    if (error?.response?.status === 401 && !isCredentialRequest) {
       window.localStorage.removeItem("nisf_access_token");
       window.localStorage.removeItem("nisf_user");
       window.localStorage.setItem("nisf_session_message", "Your session expired. Please sign in again.");

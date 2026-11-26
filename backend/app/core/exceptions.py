@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from pymongo.errors import PyMongoError
+
+logger = logging.getLogger(__name__)
 
 
 class NISFError(Exception):
@@ -76,6 +80,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(PyMongoError)
     async def database_exception_handler(request: Request, exc: PyMongoError) -> JSONResponse:
+        logger.error("database_operation_failed", exc_info=exc)
         return JSONResponse(
             status_code=503,
             content={
@@ -83,7 +88,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": "database_error",
                     "message": "Database operation failed",
-                    "details": {"error": str(exc)},
+                    "details": {},
                 },
             },
         )

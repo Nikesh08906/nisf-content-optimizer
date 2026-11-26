@@ -1,9 +1,24 @@
+x-backend-env: &backend-env
+  APP_ENV: local
+  DEBUG: "true"
+  MONGODB_URL: mongodb://mongodb:27017
+  MONGODB_DB_NAME: nisf
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/1
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
+  ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+  LLM_PROVIDER: ${LLM_PROVIDER:-local}
+  GROQ_API_KEY: ${GROQ_API_KEY:-}
+  GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+  LOCAL_MODEL: nisf-deterministic-local
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in a .env file next to docker-compose.yml}
+
 services:
   mongodb:
     image: mongo:7
     container_name: nisf-mongodb
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - nisf_mongodb_data:/data/db
 
@@ -11,7 +26,7 @@ services:
     image: redis:7
     container_name: nisf-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
   backend:
     build:
@@ -20,21 +35,19 @@ services:
     depends_on:
       - mongodb
       - redis
-    environment:
-      APP_ENV: local
-      DEBUG: "true"
-      MONGODB_URL: mongodb://mongodb:27017
-      MONGODB_DB_NAME: nisf
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
-      LLM_PROVIDER: ${LLM_PROVIDER:-local}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
-      LOCAL_MODEL: nisf-deterministic-local
+    environment: *backend-env
     ports:
       - "8000:8000"
+
+  worker:
+    build:
+      context: ./backend
+    container_name: nisf-worker
+    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info
+    depends_on:
+      - mongodb
+      - redis
+    environment: *backend-env
 
   frontend:
     build:
@@ -42,8 +55,6 @@ services:
     container_name: nisf-frontend
     depends_on:
       - backend
-    environment:
-      VITE_API_BASE_URL: http://127.0.0.1:8000
     ports:
       - "5173:80"
 

@@ -65,12 +65,16 @@ class RateLimiter:
     def _limits(self) -> dict[str, tuple[int, int]]:
         if self.settings.app_env == "local":
             return {
+                "login": (100, 900),
+                "register": (100, 3600),
                 "generate": (200, 3600),
                 "optimize": (100, 3600),
                 "score": (600, 3600),
                 "feedback": (1000, 3600),
             }
         return {
+            "login": (10, 900),
+            "register": (5, 3600),
             "generate": (20, 3600),
             "optimize": (10, 3600),
             "score": (60, 3600),
@@ -78,9 +82,12 @@ class RateLimiter:
         }
 
     def _identity(self, request: Request) -> str:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
+        # Clients can send any X-Forwarded-For value, so read it only behind a trusted proxy.
+        # The last entry is the one that proxy appended.
+        if self.settings.trust_proxy_headers:
+            forwarded = request.headers.get("x-forwarded-for")
+            if forwarded:
+                return forwarded.split(",")[-1].strip()
         client = request.client.host if request.client else "unknown"
         return client or "unknown"
 

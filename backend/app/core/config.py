@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     groq_max_retries: int = 1
     allow_llm_fallback: bool | None = None
     max_request_bytes: int = 20000
+    trust_proxy_headers: bool = False
     jwt_secret_key: str | None = None
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 1440

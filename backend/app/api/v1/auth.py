@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.auth import CurrentUser, create_access_token, get_current_user, hash_password, verify_password
 from app.core.config import get_settings
+from app.core.rate_limit import protect_endpoint
 from app.schemas.auth_schema import AuthConfigResponse, AuthResponse, AuthUser, LoginRequest, RegisterRequest
 from app.services.user_service import UserService
 
@@ -17,7 +18,11 @@ def get_auth_config() -> AuthConfigResponse:
     )
 
 
-@router.post("/register", response_model=AuthResponse)
+@router.post(
+    "/register",
+    response_model=AuthResponse,
+    dependencies=[Depends(protect_endpoint("register"))],
+)
 def register(payload: RegisterRequest) -> AuthResponse:
     service = UserService()
     if service.get_by_email(payload.email):
@@ -31,7 +36,11 @@ def register(payload: RegisterRequest) -> AuthResponse:
     return AuthResponse(user=AuthUser(**service.public_user(user)), access_token=token)
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post(
+    "/login",
+    response_model=AuthResponse,
+    dependencies=[Depends(protect_endpoint("login"))],
+)
 def login(payload: LoginRequest) -> AuthResponse:
     service = UserService()
     user = service.get_by_email(payload.email)
